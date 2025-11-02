@@ -1,0 +1,628 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>할일 관리</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            opacity: 0.9;
+            font-size: 1.1em;
+        }
+
+        .content {
+            padding: 30px;
+        }
+
+        .form-section {
+            background: #f8f9fa;
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 30px;
+        }
+
+        .form-section h2 {
+            color: #333;
+            margin-bottom: 20px;
+            font-size: 1.5em;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+            color: #555;
+            font-weight: 600;
+        }
+
+        input, select, textarea {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 1em;
+            transition: border-color 0.3s;
+        }
+
+        input:focus, select:focus, textarea:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        textarea {
+            resize: vertical;
+            min-height: 80px;
+        }
+
+        button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            border-radius: 8px;
+            font-size: 1em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            margin-right: 10px;
+            margin-top: 10px;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        .btn-delete {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        }
+
+        .btn-update {
+            background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+        }
+
+        .btn-edit {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+        }
+
+        .todos-section {
+            margin-top: 30px;
+        }
+
+        .todos-section h2 {
+            color: #333;
+            margin-bottom: 20px;
+            font-size: 1.5em;
+        }
+
+        .todo-item {
+            background: white;
+            border: 2px solid #e0e0e0;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 15px;
+            transition: all 0.3s;
+        }
+
+        .todo-item:hover {
+            border-color: #667eea;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+
+        .todo-item.completed {
+            background: #f0f8ff;
+            opacity: 0.7;
+        }
+
+        .todo-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 10px;
+        }
+
+        .todo-title {
+            font-size: 1.3em;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .todo-title.completed {
+            text-decoration: line-through;
+            color: #888;
+        }
+
+        .todo-priority {
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 0.85em;
+            font-weight: 600;
+        }
+
+        .priority-low {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .priority-medium {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .priority-high {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .todo-description {
+            color: #666;
+            margin-bottom: 10px;
+            line-height: 1.6;
+        }
+
+        .todo-meta {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.9em;
+            color: #999;
+            margin-top: 10px;
+        }
+
+        .todo-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        .todo-actions button {
+            margin: 0;
+            padding: 8px 15px;
+            font-size: 0.9em;
+        }
+
+        .message {
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            display: none;
+        }
+
+        .message.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .message.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 20px;
+            color: #999;
+        }
+
+        .api-status {
+            background: #e7f3ff;
+            border-left: 4px solid #667eea;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+
+        .status-indicator {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: #28a745;
+            margin-right: 8px;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        /* 모달 스타일 */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0,0,0,0.5);
+        }
+
+        .modal-content {
+            background-color: white;
+            margin: 5% auto;
+            padding: 30px;
+            border-radius: 20px;
+            width: 90%;
+            max-width: 600px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            animation: slideDown 0.3s;
+        }
+
+        @keyframes slideDown {
+            from {
+                opacity: 0;
+                transform: translateY(-50px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .close {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+            line-height: 1;
+        }
+
+        .close:hover,
+        .close:focus {
+            color: #000;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>✨ 할일</h1>
+        </div>
+
+        <div class="content">
+            <div class="message" id="message"></div>
+
+            <div class="form-section">
+                <h2>➕ 새로운 할일 추가</h2>
+                <form id="addTodoForm">
+                    <div class="form-group">
+                        <label for="title">제목 *</label>
+                        <input type="text" id="title" name="title" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="description">설명</label>
+                        <textarea id="description" name="description"></textarea>
+                    </div>
+                    <div style="display: flex; gap: 15px;">
+                        <div class="form-group" style="flex: 1;">
+                            <label for="priority">우선순위</label>
+                            <select id="priority" name="priority">
+                                <option value="low">낮음</option>
+                                <option value="medium" selected>보통</option>
+                                <option value="high">높음</option>
+                            </select>
+                        </div>
+                        <div class="form-group" style="flex: 1;">
+                            <label for="dueDate">마감일</label>
+                            <input type="date" id="dueDate" name="dueDate">
+                        </div>
+                    </div>
+                    <button type="submit">할일 추가</button>
+                </form>
+            </div>
+
+            <div class="todos-section">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <h2>📋 할일 목록</h2>
+                    <button onclick="loadTodos()">🔄 새로고침</button>
+                </div>
+                <div id="todosContainer" class="loading">로딩 중...</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 수정 모달 -->
+    <div id="editModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeEditModal()">&times;</span>
+            <h2>✏️ 할일 수정</h2>
+            <form id="editTodoForm">
+                <input type="hidden" id="editId">
+                <div class="form-group">
+                    <label for="editTitle">제목 *</label>
+                    <input type="text" id="editTitle" name="editTitle" required>
+                </div>
+                <div class="form-group">
+                    <label for="editDescription">설명</label>
+                    <textarea id="editDescription" name="editDescription"></textarea>
+                </div>
+                <div style="display: flex; gap: 15px;">
+                    <div class="form-group" style="flex: 1;">
+                        <label for="editPriority">우선순위</label>
+                        <select id="editPriority" name="editPriority">
+                            <option value="low">낮음</option>
+                            <option value="medium">보통</option>
+                            <option value="high">높음</option>
+                        </select>
+                    </div>
+                    <div class="form-group" style="flex: 1;">
+                        <label for="editDueDate">마감일</label>
+                        <input type="date" id="editDueDate" name="editDueDate">
+                    </div>
+                </div>
+                <button type="submit">수정 저장</button>
+                <button type="button" onclick="closeEditModal()" style="background: #6c757d;">취소</button>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = 'http://localhost:5000/api/todos';
+        
+        // 페이지 로드 시 할일 목록 불러오기
+        document.addEventListener('DOMContentLoaded', () => {
+            loadTodos();
+        });
+
+        // 할일 추가 폼 제출
+        document.getElementById('addTodoForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const formData = {
+                title: document.getElementById('title').value,
+                description: document.getElementById('description').value,
+                priority: document.getElementById('priority').value,
+                dueDate: document.getElementById('dueDate').value || null
+            };
+
+            try {
+                const response = await fetch(API_URL, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(formData)
+                });
+
+                if (response.ok) {
+                    showMessage('할일이 성공적으로 추가되었습니다!', 'success');
+                    document.getElementById('addTodoForm').reset();
+                    loadTodos();
+                } else {
+                    throw new Error('할일 추가에 실패했습니다.');
+                }
+            } catch (error) {
+                showMessage('에러: ' + error.message, 'error');
+            }
+        });
+
+        // 할일 목록 불러오기
+        async function loadTodos() {
+            try {
+                const response = await fetch(API_URL);
+                const todos = await response.json();
+                
+                const container = document.getElementById('todosContainer');
+                
+                if (todos.length === 0) {
+                    container.innerHTML = '<p style="text-align: center; color: #999; padding: 40px;">할일이 없습니다. 새 할일을 추가해보세요!</p>';
+                    return;
+                }
+
+                container.innerHTML = todos.map(todo => `
+                    <div class="todo-item ${todo.completed ? 'completed' : ''}">
+                        <div class="todo-header">
+                            <span class="todo-title ${todo.completed ? 'completed' : ''}">${todo.title}</span>
+                            <span class="todo-priority priority-${todo.priority}">${getPriorityText(todo.priority)}</span>
+                        </div>
+                        ${todo.description ? `<div class="todo-description">${todo.description}</div>` : ''}
+                        <div class="todo-meta">
+                            <div>
+                                생성일: ${formatDate(todo.createdAt)} 
+                                ${todo.dueDate ? ` | 마감일: ${formatDate(todo.dueDate)}` : ''}
+                            </div>
+                            <div class="todo-actions">
+                                <button class="btn-edit" onclick="openEditModal('${todo._id}')">✏️ 수정</button>
+                                <button class="btn-update" onclick="toggleComplete('${todo._id}', ${!todo.completed})">
+                                    ${todo.completed ? '🔄 되돌리기' : '✅ 완료'}
+                                </button>
+                                <button class="btn-delete" onclick="deleteTodo('${todo._id}')">🗑️ 삭제</button>
+                            </div>
+                        </div>
+                    </div>
+                `).join('');
+            } catch (error) {
+                document.getElementById('todosContainer').innerHTML = 
+                    '<p style="text-align: center; color: #f5576c; padding: 40px;">할일을 불러오는데 실패했습니다. 서버가 실행 중인지 확인해주세요.</p>';
+                showMessage('에러: ' + error.message, 'error');
+            }
+        }
+
+        // 완료 상태 토글
+        async function toggleComplete(id, completed) {
+            try {
+                const response = await fetch(`${API_URL}/${id}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ completed })
+                });
+
+                if (response.ok) {
+                    showMessage('할일이 업데이트되었습니다!', 'success');
+                    loadTodos();
+                } else {
+                    throw new Error('업데이트에 실패했습니다.');
+                }
+            } catch (error) {
+                showMessage('에러: ' + error.message, 'error');
+            }
+        }
+
+        // 할일 삭제
+        async function deleteTodo(id) {
+            if (!confirm('정말 삭제하시겠습니까?')) return;
+
+            try {
+                const response = await fetch(`${API_URL}/${id}`, {
+                    method: 'DELETE'
+                });
+
+                if (response.ok) {
+                    showMessage('할일이 삭제되었습니다!', 'success');
+                    loadTodos();
+                } else {
+                    throw new Error('삭제에 실패했습니다.');
+                }
+            } catch (error) {
+                showMessage('에러: ' + error.message, 'error');
+            }
+        }
+
+        // 메시지 표시
+        function showMessage(text, type) {
+            const messageDiv = document.getElementById('message');
+            messageDiv.textContent = text;
+            messageDiv.className = `message ${type}`;
+            messageDiv.style.display = 'block';
+            
+            setTimeout(() => {
+                messageDiv.style.display = 'none';
+            }, 3000);
+        }
+
+        // 우선순위 텍스트 변환
+        function getPriorityText(priority) {
+            const priorityMap = {
+                'low': '낮음',
+                'medium': '보통',
+                'high': '높음'
+            };
+            return priorityMap[priority] || priority;
+        }
+
+        // 날짜 포맷팅
+        function formatDate(dateString) {
+            const date = new Date(dateString);
+            return date.toLocaleDateString('ko-KR', {
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric'
+            });
+        }
+
+        // 수정 모달 열기
+        async function openEditModal(id) {
+            try {
+                const response = await fetch(`${API_URL}/${id}`);
+                const todo = await response.json();
+
+                document.getElementById('editId').value = todo._id;
+                document.getElementById('editTitle').value = todo.title;
+                document.getElementById('editDescription').value = todo.description || '';
+                document.getElementById('editPriority').value = todo.priority;
+                document.getElementById('editDueDate').value = todo.dueDate ? todo.dueDate.split('T')[0] : '';
+
+                document.getElementById('editModal').style.display = 'block';
+            } catch (error) {
+                showMessage('할일을 불러오는데 실패했습니다.', 'error');
+            }
+        }
+
+        // 수정 모달 닫기
+        function closeEditModal() {
+            document.getElementById('editModal').style.display = 'none';
+            document.getElementById('editTodoForm').reset();
+        }
+
+        // 모달 외부 클릭 시 닫기
+        window.onclick = function(event) {
+            const modal = document.getElementById('editModal');
+            if (event.target === modal) {
+                closeEditModal();
+            }
+        }
+
+        // 수정 폼 제출
+        document.getElementById('editTodoForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const id = document.getElementById('editId').value;
+            const formData = {
+                title: document.getElementById('editTitle').value,
+                description: document.getElementById('editDescription').value,
+                priority: document.getElementById('editPriority').value,
+                dueDate: document.getElementById('editDueDate').value || null
+            };
+
+            try {
+                const response = await fetch(`${API_URL}/${id}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(formData)
+                });
+
+                if (response.ok) {
+                    showMessage('할일이 성공적으로 수정되었습니다!', 'success');
+                    closeEditModal();
+                    loadTodos();
+                } else {
+                    throw new Error('수정에 실패했습니다.');
+                }
+            } catch (error) {
+                showMessage('에러: ' + error.message, 'error');
+            }
+        });
+    </script>
+</body>
+</html>
+
