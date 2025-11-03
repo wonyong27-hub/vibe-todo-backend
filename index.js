@@ -6,12 +6,12 @@ import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 import todoRoutes from './routers/todoRoutes.js';
 
-// 환경 변수 로드
-dotenv.config();
-
 // ES 모듈에서 __dirname 사용하기
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
+
+// 환경 변수 로드
+dotenv.config();
 
 const app = express();
 const PORT = 5000;
@@ -26,10 +26,10 @@ app.use(express.json());
 // MongoDB 연결
 mongoose.connect(MONGO_URI)
   .then(() => {
-    console.log('연결 성공');
+    console.log('MongoDB 연결 성공');
   })
   .catch((error) => {
-    console.error('MongoDB 연결 실패:', error);
+    console.error('MongoDB 연결 실패:', error.message);
   });
 
 // API 라우트
@@ -48,8 +48,18 @@ app.use('/api/todos', todoRoutes);
 app.use(express.static(join(__dirname, 'public')));
 
 // 서버 시작
-app.listen(PORT, () => {
+const server = app.listen(PORT, () => {
   console.log(`서버가 포트 ${PORT}에서 실행 중입니다.`);
+});
+
+// 서버 오류 처리
+server.on('error', (error) => {
+  if (error.code === 'EADDRINUSE') {
+    console.error(`포트 ${PORT}가 이미 사용 중입니다.`);
+  } else {
+    console.error('서버 오류:', error);
+  }
+  process.exit(1);
 });
 
 
