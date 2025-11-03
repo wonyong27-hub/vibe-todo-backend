@@ -403,7 +403,10 @@
     </div>
 
     <script>
-        const API_URL = 'http://localhost:5000/api/todos';
+        // API URL 자동 감지 (Heroku 또는 로컬)
+        const API_URL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+            ? 'http://localhost:5000/api/todos'
+            : `${window.location.protocol}//${window.location.host}/api/todos`;
         
         // 페이지 로드 시 할일 목록 불러오기
         document.addEventListener('DOMContentLoaded', () => {
@@ -435,9 +438,11 @@
                     document.getElementById('addTodoForm').reset();
                     loadTodos();
                 } else {
-                    throw new Error('할일 추가에 실패했습니다.');
+                    const errorData = await response.json().catch(() => ({ message: '할일 추가에 실패했습니다.' }));
+                    throw new Error(errorData.message || '할일 추가에 실패했습니다.');
                 }
             } catch (error) {
+                console.error('할일 추가 오류:', error);
                 showMessage('에러: ' + error.message, 'error');
             }
         });
@@ -446,7 +451,18 @@
         async function loadTodos() {
             try {
                 const response = await fetch(API_URL);
+                
+                if (!response.ok) {
+                    const errorData = await response.json().catch(() => ({ message: '데이터를 불러올 수 없습니다.' }));
+                    throw new Error(errorData.message || `HTTP ${response.status}`);
+                }
+                
                 const todos = await response.json();
+                
+                // 응답이 배열이 아닌 경우 처리 (에러 메시지 등)
+                if (!Array.isArray(todos)) {
+                    throw new Error(todos.message || '데이터 형식이 올바르지 않습니다.');
+                }
                 
                 const container = document.getElementById('todosContainer');
                 
@@ -499,9 +515,11 @@
                     showMessage('할일이 업데이트되었습니다!', 'success');
                     loadTodos();
                 } else {
-                    throw new Error('업데이트에 실패했습니다.');
+                    const errorData = await response.json().catch(() => ({ message: '업데이트에 실패했습니다.' }));
+                    throw new Error(errorData.message || '업데이트에 실패했습니다.');
                 }
             } catch (error) {
+                console.error('업데이트 오류:', error);
                 showMessage('에러: ' + error.message, 'error');
             }
         }
@@ -519,9 +537,11 @@
                     showMessage('할일이 삭제되었습니다!', 'success');
                     loadTodos();
                 } else {
-                    throw new Error('삭제에 실패했습니다.');
+                    const errorData = await response.json().catch(() => ({ message: '삭제에 실패했습니다.' }));
+                    throw new Error(errorData.message || '삭제에 실패했습니다.');
                 }
             } catch (error) {
+                console.error('삭제 오류:', error);
                 showMessage('에러: ' + error.message, 'error');
             }
         }
@@ -562,17 +582,24 @@
         async function openEditModal(id) {
             try {
                 const response = await fetch(`${API_URL}/${id}`);
+                
+                if (!response.ok) {
+                    const errorData = await response.json().catch(() => ({ message: '할일을 불러올 수 없습니다.' }));
+                    throw new Error(errorData.message || '할일을 불러올 수 없습니다.');
+                }
+                
                 const todo = await response.json();
 
                 document.getElementById('editId').value = todo._id;
-                document.getElementById('editTitle').value = todo.title;
+                document.getElementById('editTitle').value = todo.title || '';
                 document.getElementById('editDescription').value = todo.description || '';
-                document.getElementById('editPriority').value = todo.priority;
+                document.getElementById('editPriority').value = todo.priority || 'medium';
                 document.getElementById('editDueDate').value = todo.dueDate ? todo.dueDate.split('T')[0] : '';
 
                 document.getElementById('editModal').style.display = 'block';
             } catch (error) {
-                showMessage('할일을 불러오는데 실패했습니다.', 'error');
+                console.error('할일 불러오기 오류:', error);
+                showMessage('할일을 불러오는데 실패했습니다: ' + error.message, 'error');
             }
         }
 
@@ -616,9 +643,11 @@
                     closeEditModal();
                     loadTodos();
                 } else {
-                    throw new Error('수정에 실패했습니다.');
+                    const errorData = await response.json().catch(() => ({ message: '수정에 실패했습니다.' }));
+                    throw new Error(errorData.message || '수정에 실패했습니다.');
                 }
             } catch (error) {
+                console.error('수정 오류:', error);
                 showMessage('에러: ' + error.message, 'error');
             }
         });
