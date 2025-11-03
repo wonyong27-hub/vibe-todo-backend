@@ -42,31 +42,77 @@ app.get('/api', (req, res) => {
 
 // MongoDB 연결 설정
 const mongooseOptions = {
-  serverSelectionTimeoutMS: 10000, // 10초 타임아웃 (Heroku용으로 증가)
+  serverSelectionTimeoutMS: 15000, // 15초 타임아웃
   socketTimeoutMS: 45000,
+  connectTimeoutMS: 15000,
   retryWrites: true,
-  w: 'majority'
+  w: 'majority',
+  maxPoolSize: 10,
+  minPoolSize: 1
 };
 
 // MongoDB 연결 (데이터베이스 이름 명시)
-const connectDB = async () => {
-  if (MONGO_URI) {
-    try {
-      // 데이터베이스 이름을 명시적으로 추가
-      const dbUri = MONGO_URI.endsWith('/') 
+const connectDB = async (retries = 3) => {
+  if (!MONGO_URI) {
+    console.warn('MONGO_URI 환경변수가 설정되지 않았습니다.');
+    console.warn('Heroku Config Vars에 MONGO_URI를 설정하세요.');
+    return;
+  }
+
+  try {
+    // URI에 데이터베이스 이름이 있는지 확인
+    let dbUri = MONGO_URI;
+    
+    // MongoDB Atlas URI 형식 확인
+    // 형식: mongodb+srv://user:pass@cluster.net/dbname?options
+    const uriMatch = MONGO_URI.match(/mongodb\+srv:\/\/[^\/]+(\/([^?]+))?/);
+    const hasDbName = uriMatch && uriMatch[2] && uriMatch[2].length > 0;
+    
+    if (!hasDbName) {
+      // 데이터베이스 이름이 없으면 추가
+      dbUri = MONGO_URI.endsWith('/') 
         ? `${MONGO_URI}todo-db` 
         : `${MONGO_URI}/todo-db`;
-      
-      await mongoose.connect(dbUri, mongooseOptions);
-      console.log('MongoDB 연결 성공:', mongoose.connection.name);
-    } catch (error) {
-      console.error('MongoDB 연결 실패:', error.message);
-      console.error('MONGO_URI가 설정되어 있는지 확인하세요.');
     }
-  } else {
-    console.warn('MONGO_URI 환경변수가 설정되지 않았습니다.');
+    
+    // 이미 연결되어 있으면 재연결 시도
+    if (mongoose.connection.readyState === 1) {
+      console.log('MongoDB 이미 연결되어 있습니다.');
+      return;
+    }
+    
+    await mongoose.connect(dbUri, mongooseOptions);
+    console.log('MongoDB 연결 성공:', mongoose.connection.name);
+    console.log('데이터베이스:', mongoose.connection.db?.databaseName);
+  } catch (error) {
+    console.error('MongoDB 연결 실패:', error.message);
+    
+    // 재시도 로직
+    if (retries > 0) {
+      console.log(`${retries}번 남았습니다. 5초 후 재시도...`);
+      await new Promise(resolve => setTimeout(resolve, 5000));
+      return connectDB(retries - 1);
+    } else {
+      console.error('MongoDB 연결 재시도 횟수를 초과했습니다.');
+      console.error('MONGO_URI가 올바른지 확인하세요:', MONGO_URI ? '설정됨' : '설정 안됨');
+    }
   }
 };
+
+// MongoDB 연결 이벤트 리스너
+mongoose.connection.on('connected', () => {
+  console.log('MongoDB 연결됨');
+});
+
+mongoose.connection.on('error', (err) => {
+  console.error('MongoDB 연결 오류:', err);
+});
+
+mongoose.connection.on('disconnected', () => {
+  console.warn('MongoDB 연결 끊김');
+  // 재연결 시도
+  setTimeout(() => connectDB(3), 5000);
+});
 
 // 데이터베이스 연결 시작
 connectDB();
