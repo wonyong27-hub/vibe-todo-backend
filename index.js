@@ -63,6 +63,7 @@ if (MONGO_URI) {
 
 // Todo 라우트
 app.use('/api/todos', todoRoutes);
+app.use('/todos', todoRoutes); // /todos 엔드포인트도 추가
 
 // 정적 파일 제공 (가장 마지막에 배치)
 app.use(express.static(join(__dirname, 'public')));
