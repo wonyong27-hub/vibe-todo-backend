@@ -10,43 +10,89 @@ const router = express.Router();
 
 // MongoDB 연결 확인 및 재연결 시도
 const ensureConnection = async () => {
+  // 이미 연결되어 있으면 성공
   if (mongoose.connection.readyState === 1) {
     return true;
   }
   
-  // 연결 시도 중이면 대기
+  // 연결 시도 중이면 대기 (최대 10초)
   if (mongoose.connection.readyState === 2) {
     return new Promise((resolve) => {
-      mongoose.connection.once('connected', () => resolve(true));
-      mongoose.connection.once('error', () => resolve(false));
-      setTimeout(() => resolve(false), 5000);
+      const timeout = setTimeout(() => resolve(false), 10000);
+      mongoose.connection.once('connected', () => {
+        clearTimeout(timeout);
+        resolve(true);
+      });
+      mongoose.connection.once('error', () => {
+        clearTimeout(timeout);
+        resolve(false);
+      });
     });
   }
   
-  // 재연결 시도
+  // MONGO_URI 확인
   const MONGO_URI = process.env.MONGO_URI;
   if (!MONGO_URI) {
+    console.error('MONGO_URI가 환경변수에 설정되어 있지 않습니다.');
     return false;
   }
   
   try {
-    let dbUri = MONGO_URI;
-    const uriMatch = MONGO_URI.match(/mongodb\+srv:\/\/[^\/]+(\/([^?]+))?/);
-    const hasDbName = uriMatch && uriMatch[2] && uriMatch[2].length > 0;
-    
-    if (!hasDbName) {
-      dbUri = MONGO_URI.endsWith('/') 
-        ? `${MONGO_URI}todo-db` 
-        : `${MONGO_URI}/todo-db`;
+    // 기존 연결이 있다면 종료
+    if (mongoose.connection.readyState !== 0) {
+      await mongoose.connection.close();
     }
     
-    await mongoose.connect(dbUri, {
-      serverSelectionTimeoutMS: 5000,
-      socketTimeoutMS: 45000
-    });
+    // URI 준비
+    let dbUri = MONGO_URI.trim();
+    
+    // URI 형식 검증 및 데이터베이스 이름 추가
+    const uriMatch = dbUri.match(/mongodb\+srv:\/\/[^\/]+(\/([^?]+))?/);
+    const hasDbName = uriMatch && uriMatch[2] && uriMatch[2].trim().length > 0;
+    
+    if (!hasDbName) {
+      // 데이터베이스 이름이 없으면 추가
+      dbUri = dbUri.endsWith('/') 
+        ? `${dbUri}todo-db` 
+        : `${dbUri}/todo-db`;
+    }
+    
+    // MongoDB Atlas 연결 옵션
+    const connectionOptions = {
+      serverSelectionTimeoutMS: 10000, // 10초 타임아웃
+      socketTimeoutMS: 45000,
+      connectTimeoutMS: 10000,
+      maxPoolSize: 10,
+      minPoolSize: 1,
+      retryWrites: true,
+      w: 'majority',
+      // MongoDB Atlas 관련 추가 옵션
+      ssl: true,
+      authSource: 'admin'
+    };
+    
+    console.log('MongoDB 연결 시도 중...');
+    console.log('URI:', dbUri.substring(0, 30) + '...');
+    
+    await mongoose.connect(dbUri, connectionOptions);
+    
+    console.log('MongoDB 연결 성공!');
     return true;
   } catch (error) {
-    console.error('연결 시도 실패:', error.message);
+    console.error('MongoDB 연결 실패:');
+    console.error('오류 메시지:', error.message);
+    console.error('오류 코드:', error.code);
+    console.error('오류 이름:', error.name);
+    
+    // 특정 오류에 대한 안내
+    if (error.message.includes('authentication')) {
+      console.error('인증 오류: 사용자명/비밀번호를 확인하세요.');
+    } else if (error.message.includes('timeout')) {
+      console.error('타임아웃: MongoDB Atlas 네트워크 접근 설정을 확인하세요.');
+    } else if (error.message.includes('ENOTFOUND') || error.message.includes('getaddrinfo')) {
+      console.error('DNS 오류: MongoDB Atlas 클러스터 주소를 확인하세요.');
+    }
+    
     return false;
   }
 };

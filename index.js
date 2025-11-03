@@ -59,7 +59,9 @@ const mongooseOptions = {
   retryWrites: true,
   w: 'majority',
   maxPoolSize: 10,
-  minPoolSize: 1
+  minPoolSize: 1,
+  ssl: true, // MongoDB Atlas는 SSL 필수
+  authSource: 'admin' // 인증 소스
 };
 
 // MongoDB 연결 (데이터베이스 이름 명시)
@@ -71,32 +73,50 @@ const connectDB = async (retries = 3) => {
   }
 
   try {
-    // URI에 데이터베이스 이름이 있는지 확인
-    let dbUri = MONGO_URI;
+    // URI 준비 (공백 제거)
+    let dbUri = MONGO_URI.trim();
     
     // MongoDB Atlas URI 형식 확인
     // 형식: mongodb+srv://user:pass@cluster.net/dbname?options
-    const uriMatch = MONGO_URI.match(/mongodb\+srv:\/\/[^\/]+(\/([^?]+))?/);
-    const hasDbName = uriMatch && uriMatch[2] && uriMatch[2].length > 0;
+    const uriMatch = dbUri.match(/mongodb\+srv:\/\/[^\/]+(\/([^?]+))?/);
+    const hasDbName = uriMatch && uriMatch[2] && uriMatch[2].trim().length > 0;
     
     if (!hasDbName) {
       // 데이터베이스 이름이 없으면 추가
-      dbUri = MONGO_URI.endsWith('/') 
-        ? `${MONGO_URI}todo-db` 
-        : `${MONGO_URI}/todo-db`;
+      dbUri = dbUri.endsWith('/') 
+        ? `${dbUri}todo-db` 
+        : `${dbUri}/todo-db`;
     }
     
-    // 이미 연결되어 있으면 재연결 시도
+    // 이미 연결되어 있으면 스킵
     if (mongoose.connection.readyState === 1) {
       console.log('MongoDB 이미 연결되어 있습니다.');
       return;
     }
     
+    // 기존 연결이 있으면 종료
+    if (mongoose.connection.readyState !== 0) {
+      await mongoose.connection.close();
+    }
+    
+    console.log('MongoDB 연결 시도 중...');
     await mongoose.connect(dbUri, mongooseOptions);
     console.log('MongoDB 연결 성공:', mongoose.connection.name);
     console.log('데이터베이스:', mongoose.connection.db?.databaseName);
   } catch (error) {
-    console.error('MongoDB 연결 실패:', error.message);
+    console.error('MongoDB 연결 실패:');
+    console.error('오류 메시지:', error.message);
+    console.error('오류 코드:', error.code);
+    console.error('오류 이름:', error.name);
+    
+    // 특정 오류에 대한 안내
+    if (error.message.includes('authentication')) {
+      console.error('인증 오류: MongoDB Atlas 사용자명/비밀번호를 확인하세요.');
+    } else if (error.message.includes('timeout')) {
+      console.error('타임아웃: MongoDB Atlas Network Access에서 Heroku IP를 허용하세요.');
+    } else if (error.message.includes('ENOTFOUND') || error.message.includes('getaddrinfo')) {
+      console.error('DNS 오류: MongoDB Atlas 클러스터 주소를 확인하세요.');
+    }
     
     // 재시도 로직
     if (retries > 0) {
@@ -105,7 +125,10 @@ const connectDB = async (retries = 3) => {
       return connectDB(retries - 1);
     } else {
       console.error('MongoDB 연결 재시도 횟수를 초과했습니다.');
-      console.error('MONGO_URI가 올바른지 확인하세요:', MONGO_URI ? '설정됨' : '설정 안됨');
+      console.error('MONGO_URI 확인:', MONGO_URI ? '설정됨' : '설정 안됨');
+      if (MONGO_URI) {
+        console.error('MONGO_URI 시작 부분:', MONGO_URI.substring(0, 30) + '...');
+      }
     }
   }
 };
