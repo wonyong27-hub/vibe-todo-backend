@@ -33,10 +33,21 @@ app.get('/', (req, res) => {
 
 // API 라우트
 app.get('/api', (req, res) => {
+  const connectionStates = {
+    0: 'disconnected',
+    1: 'connected',
+    2: 'connecting',
+    3: 'disconnecting',
+    99: 'uninitialized'
+  };
+  
   res.json({ 
     message: 'Todo Backend API',
     status: 'running',
-    mongodb: mongoose.connection.readyState === 1 ? 'connected' : 'disconnected'
+    mongodb: connectionStates[mongoose.connection.readyState] || 'unknown',
+    readyState: mongoose.connection.readyState,
+    hasMongoUri: !!MONGO_URI,
+    mongoUriPrefix: MONGO_URI ? MONGO_URI.substring(0, 30) + '...' : 'not set'
   });
 });
 
@@ -105,7 +116,9 @@ mongoose.connection.on('connected', () => {
 });
 
 mongoose.connection.on('error', (err) => {
-  console.error('MongoDB 연결 오류:', err);
+  console.error('MongoDB 연결 오류:', err.message);
+  console.error('오류 코드:', err.code);
+  console.error('오류 이름:', err.name);
 });
 
 mongoose.connection.on('disconnected', () => {

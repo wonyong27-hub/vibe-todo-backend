@@ -39,7 +39,19 @@ Config Vars를 설정한 후:
 - `https://vibe-todo-backend1-45443a5ea80b.herokuapp.com/api` - MongoDB 연결 상태 확인
 - `https://vibe-todo-backend1-45443a5ea80b.herokuapp.com/todos` - 데이터 조회
 
-### 5. 로그 확인
+### 5. 연결 상태 진단
+
+`/api` 엔드포인트에서 상세 정보 확인:
+```
+GET https://vibe-todo-backend1-45443a5ea80b.herokuapp.com/api
+```
+
+응답에서 확인:
+- `hasMongoUri`: MONGO_URI가 설정되어 있는지 (true/false)
+- `mongodb`: 연결 상태 (connected/disconnected/connecting)
+- `readyState`: Mongoose 연결 상태 코드 (0=disconnected, 1=connected, 2=connecting)
+
+### 6. 로그 확인
 
 Heroku 로그에서 연결 상태 확인:
 ```bash
@@ -47,4 +59,13 @@ heroku logs --tail
 ```
 
 또는 Heroku 대시보드에서 "View logs" 클릭
+
+### 문제 해결 체크리스트
+
+- [ ] Heroku Config Vars에 `MONGO_URI`가 설정되어 있는가?
+- [ ] `MONGO_URI` 값이 올바른가? (사용자명, 비밀번호, 클러스터 주소 확인)
+- [ ] URI 끝에 데이터베이스 이름(`/todo-db`)이 포함되어 있는가?
+- [ ] MongoDB Atlas 네트워크 접근에서 IP가 허용되어 있는가?
+- [ ] Heroku 앱을 재시작했는가?
+- [ ] MongoDB Atlas 사용자 비밀번호가 올바른가?
 
