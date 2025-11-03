@@ -45,6 +45,18 @@ npm start
 http://localhost:5000
 ```
 
+## Heroku 배포
+
+프로젝트는 Heroku에 배포되어 있습니다:
+
+**배포 URL:** https://vibe-todo-backend1-45443a5ea80b.herokuapp.com
+
+**사용 가능한 엔드포인트:**
+- `GET /` - 서버 상태 확인
+- `GET /api` - API 정보 및 MongoDB 연결 상태
+- `GET /todos` 또는 `GET /api/todos` - 모든 할일 조회
+- `POST /todos` 또는 `POST /api/todos` - 할일 생성
+
 ## 프로젝트 구조
 
 ```

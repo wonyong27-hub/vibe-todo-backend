@@ -42,24 +42,34 @@ app.get('/api', (req, res) => {
 
 // MongoDB 연결 설정
 const mongooseOptions = {
-  serverSelectionTimeoutMS: 5000, // 5초 타임아웃
+  serverSelectionTimeoutMS: 10000, // 10초 타임아웃 (Heroku용으로 증가)
   socketTimeoutMS: 45000,
+  retryWrites: true,
+  w: 'majority'
 };
 
-// MongoDB 연결
-if (MONGO_URI) {
-  mongoose.connect(MONGO_URI, mongooseOptions)
-    .then(() => {
-      console.log('MongoDB 연결 성공');
-    })
-    .catch((error) => {
+// MongoDB 연결 (데이터베이스 이름 명시)
+const connectDB = async () => {
+  if (MONGO_URI) {
+    try {
+      // 데이터베이스 이름을 명시적으로 추가
+      const dbUri = MONGO_URI.endsWith('/') 
+        ? `${MONGO_URI}todo-db` 
+        : `${MONGO_URI}/todo-db`;
+      
+      await mongoose.connect(dbUri, mongooseOptions);
+      console.log('MongoDB 연결 성공:', mongoose.connection.name);
+    } catch (error) {
       console.error('MongoDB 연결 실패:', error.message);
       console.error('MONGO_URI가 설정되어 있는지 확인하세요.');
-      // 연결 실패해도 서버는 계속 실행 (개발 환경)
-    });
-} else {
-  console.warn('MONGO_URI 환경변수가 설정되지 않았습니다.');
-}
+    }
+  } else {
+    console.warn('MONGO_URI 환경변수가 설정되지 않았습니다.');
+  }
+};
+
+// 데이터베이스 연결 시작
+connectDB();
 
 // Todo 라우트
 app.use('/api/todos', todoRoutes);
