@@ -8,7 +8,7 @@ const path = require('path');
 require('dotenv').config({ path: path.join(__dirname, '.env') });
 
 const app = express();
-const PORT = 5000;
+const PORT = process.env.PORT || 5000;
 
 // Middleware
 // CORS 기본 설정
@@ -31,11 +31,13 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 // MongoDB 연결
 // URI에 데이터베이스 이름이 없으면 기본 데이터베이스 사용
-let MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/todo-db';
+// Heroku에서는 MONGO_URI 또는 MONGODB_URI를 사용할 수 있음
+let MONGODB_URI = process.env.MONGODB_URI || process.env.MONGO_URI || 'mongodb://localhost:27017/todo-db';
 
 // 환경변수 확인 (디버깅용)
 console.log('환경변수 확인:');
 console.log('MONGODB_URI:', process.env.MONGODB_URI ? '설정됨' : '설정되지 않음');
+console.log('MONGO_URI:', process.env.MONGO_URI ? '설정됨' : '설정되지 않음');
 
 // MongoDB 연결 시 데이터베이스 이름을 명시적으로 지정
 // 클러스터: cluster.c0hkr5i.mongodb.net

@@ -12,9 +12,11 @@
 6. 다음 환경변수 추가/수정:
 
 ```
-Key: MONGO_URI
-Value: mongodb+srv://wonyong27_db_user:dnjsdyd12@cluster.c0hkr5i.mongodb.net/todo-db
+Key: MONGODB_URI (또는 MONGO_URI)
+Value: mongodb+srv://wonyong27_db_user:124qwrasf@cluster.c0hkr5i.mongodb.net/todo-db
 ```
+
+**참고:** 코드는 `MONGODB_URI`와 `MONGO_URI` 둘 다 지원합니다.
 
 **중요:** 데이터베이스 이름(`todo-db`)이 URI 끝에 포함되어야 합니다.
 
