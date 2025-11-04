@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>할일 관리</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            padding: 40px;
+        }
+
+        h1 {
+            color: #333;
+            margin-bottom: 30px;
+            text-align: center;
+            font-size: 2.5em;
+        }
+
+        .input-section {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 30px;
+        }
+
+        input[type="text"] {
+            flex: 1;
+            padding: 15px;
+            border: 2px solid #ddd;
+            border-radius: 10px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+        }
+
+        input[type="text"]:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        button {
+            padding: 15px 30px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        button:hover {
+            background: #5568d3;
+        }
+
+        button.delete {
+            background: #e74c3c;
+        }
+
+        button.delete:hover {
+            background: #c0392b;
+        }
+
+        button.edit {
+            background: #f39c12;
+        }
+
+        button.edit:hover {
+            background: #e67e22;
+        }
+
+        button.save {
+            background: #27ae60;
+        }
+
+        button.save:hover {
+            background: #229954;
+        }
+
+        button.cancel {
+            background: #95a5a6;
+        }
+
+        button.cancel:hover {
+            background: #7f8c8d;
+        }
+
+        .todo-list {
+            list-style: none;
+        }
+
+        .todo-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 15px;
+            margin-bottom: 10px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            transition: transform 0.2s;
+        }
+
+        .todo-item:hover {
+            transform: translateX(5px);
+        }
+
+        .todo-item.edit-mode {
+            background: #fff3cd;
+        }
+
+        .todo-text {
+            flex: 1;
+            font-size: 16px;
+            color: #333;
+        }
+
+        .todo-text input {
+            width: 100%;
+            padding: 8px;
+            border: 2px solid #f39c12;
+            border-radius: 5px;
+            font-size: 16px;
+        }
+
+        .todo-actions {
+            display: flex;
+            gap: 5px;
+        }
+
+        .empty-message {
+            text-align: center;
+            color: #999;
+            padding: 40px;
+            font-size: 18px;
+        }
+
+        .message {
+            padding: 10px;
+            margin-bottom: 20px;
+            border-radius: 5px;
+            text-align: center;
+            display: none;
+        }
+
+        .message.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .message.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>할일 관리</h1>
+        
+        <div id="message" class="message"></div>
+
+        <div class="input-section">
+            <input type="text" id="todoInput" placeholder="할일을 입력하세요..." />
+            <button onclick="addTodo()">추가</button>
+        </div>
+
+        <ul id="todoList" class="todo-list">
+            <li class="empty-message">할일이 없습니다. 새로운 할일을 추가해보세요!</li>
+        </ul>
+    </div>
+
+    <script>
+        let todos = [];
+        let editingId = null;
+
+        // 페이지 로드 시 할일 목록 가져오기
+        async function loadTodos() {
+            try {
+                const response = await fetch('http://localhost:5000/todos');
+                const data = await response.json();
+                todos = data.todos || [];
+                renderTodos();
+            } catch (error) {
+                showMessage('할일 목록을 불러오는데 실패했습니다.', 'error');
+                console.error('Error loading todos:', error);
+            }
+        }
+
+        // 할일 추가
+        async function addTodo() {
+            const input = document.getElementById('todoInput');
+            const text = input.value.trim();
+
+            if (!text) {
+                showMessage('할일 내용을 입력해주세요.', 'error');
+                return;
+            }
+
+            try {
+                const response = await fetch('http://localhost:5000/todos', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ text }),
+                });
+
+                const data = await response.json();
+                if (response.ok) {
+                    input.value = '';
+                    showMessage('할일이 추가되었습니다.', 'success');
+                    loadTodos();
+                } else {
+                    showMessage(data.error || '할일 추가에 실패했습니다.', 'error');
+                }
+            } catch (error) {
+                showMessage('할일 추가에 실패했습니다.', 'error');
+                console.error('Error adding todo:', error);
+            }
+        }
+
+        // 할일 수정 모드 진입
+        function editTodo(id) {
+            editingId = id;
+            renderTodos();
+        }
+
+        // 할일 수정 저장
+        async function saveTodo(id) {
+            const input = document.querySelector(`input[data-id="${id}"]`);
+            const text = input.value.trim();
+
+            if (!text) {
+                showMessage('할일 내용을 입력해주세요.', 'error');
+                return;
+            }
+
+            try {
+                const response = await fetch(`http://localhost:5000/todos/${id}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ text }),
+                });
+
+                const data = await response.json();
+                if (response.ok) {
+                    editingId = null;
+                    showMessage('할일이 수정되었습니다.', 'success');
+                    loadTodos();
+                } else {
+                    showMessage(data.error || '할일 수정에 실패했습니다.', 'error');
+                }
+            } catch (error) {
+                showMessage('할일 수정에 실패했습니다.', 'error');
+                console.error('Error updating todo:', error);
+            }
+        }
+
+        // 수정 취소
+        function cancelEdit() {
+            editingId = null;
+            renderTodos();
+        }
+
+        // 할일 삭제
+        async function deleteTodo(id) {
+            if (!confirm('정말 삭제하시겠습니까?')) {
+                return;
+            }
+
+            try {
+                const response = await fetch(`http://localhost:5000/todos/${id}`, {
+                    method: 'DELETE',
+                });
+
+                const data = await response.json();
+                if (response.ok) {
+                    showMessage('할일이 삭제되었습니다.', 'success');
+                    loadTodos();
+                } else {
+                    showMessage(data.error || '할일 삭제에 실패했습니다.', 'error');
+                }
+            } catch (error) {
+                showMessage('할일 삭제에 실패했습니다.', 'error');
+                console.error('Error deleting todo:', error);
+            }
+        }
+
+        // 할일 목록 렌더링
+        function renderTodos() {
+            const list = document.getElementById('todoList');
+            
+            if (todos.length === 0) {
+                list.innerHTML = '<li class="empty-message">할일이 없습니다. 새로운 할일을 추가해보세요!</li>';
+                return;
+            }
+
+            list.innerHTML = todos.map(todo => {
+                const isEditing = editingId === todo._id;
+                return `
+                    <li class="todo-item ${isEditing ? 'edit-mode' : ''}">
+                        <div class="todo-text">
+                            ${isEditing 
+                                ? `<input type="text" data-id="${todo._id}" value="${todo.text}" />`
+                                : `<span>${todo.text}</span>`
+                            }
+                        </div>
+                        <div class="todo-actions">
+                            ${isEditing
+                                ? `
+                                    <button class="save" onclick="saveTodo('${todo._id}')">저장</button>
+                                    <button class="cancel" onclick="cancelEdit()">취소</button>
+                                `
+                                : `
+                                    <button class="edit" onclick="editTodo('${todo._id}')">수정</button>
+                                    <button class="delete" onclick="deleteTodo('${todo._id}')">삭제</button>
+                                `
+                            }
+                        </div>
+                    </li>
+                `;
+            }).join('');
+        }
+
+        // 메시지 표시
+        function showMessage(text, type) {
+            const messageDiv = document.getElementById('message');
+            messageDiv.textContent = text;
+            messageDiv.className = `message ${type}`;
+            messageDiv.style.display = 'block';
+            
+            setTimeout(() => {
+                messageDiv.style.display = 'none';
+            }, 3000);
+        }
+
+        // Enter 키로 할일 추가
+        document.getElementById('todoInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                addTodo();
+            }
+        });
+
+        // 페이지 로드 시 할일 목록 불러오기
+        loadTodos();
+    </script>
+</body>
+</html>
+
+
